@@ -1,0 +1,41 @@
+image: maven:3.9.6-eclipse-temurin-17
+
+variables:
+  MAVEN_CLI_OPTS: "-B -ntp"
+  ALLURE_VERSION: "2.27.0"
+
+stages:
+  - test
+  - report
+
+cache:
+  paths:
+    - .m2/repository
+
+before_script:
+  - apt-get update && apt-get install -y wget unzip
+  - wget https://github.com/allure-framework/allure2/releases/download/${ALLURE_VERSION}/allure-${ALLURE_VERSION}.zip
+  - unzip allure-${ALLURE_VERSION}.zip -d /opt/
+  - ln -s /opt/allure-${ALLURE_VERSION}/bin/allure /usr/bin/allure
+  - allure --version
+
+test:
+  stage: test
+  script:
+    - mvn $MAVEN_CLI_OPTS clean test
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - target/surefire-reports/
+      - allure-results/
+
+report:
+  stage: report
+  script:
+    - allure generate allure-results --clean -o allure-report
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - allure-report/
